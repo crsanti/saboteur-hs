@@ -1,10 +1,11 @@
 module Lib(
-  module Player,
-  module Game,
+  module Board,
   module Card,
+  module Game,
+  module Player,
 ) where
 
 import Board
-import Game
 import Card
+import Game
 import Player
