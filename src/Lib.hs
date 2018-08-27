@@ -1,6 +1,5 @@
 module Lib(
-  helloWorld
+  module Card,
 ) where
 
-helloWorld :: IO String
-helloWorld = return "Hello world"
+import Card
