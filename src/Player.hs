@@ -1,22 +1,26 @@
 module Player (
+  Hand (..),
   Player (..),
-  PType (..),
+  Role (..),
   initPlayer
 ) where
 
-import Card (DeckCard, Tool)
+import Card (ActionCard, PathCard, Tool)
 
-data PType = Dwarf
-           | Saboteur
-           deriving (Show, Eq)
+data Role = Miner
+          | Saboteur
+          deriving (Show, Eq)
+
+data Hand = Hand [PathCard] [ActionCard]
+          deriving (Show, Eq)
 
 data Player = Player {
-  hand :: [DeckCard],
+  hand :: Hand,
   name :: String,
-  pType :: PType,
+  playerRole :: Role,
   goldNuggets :: Int,
   brokenTools :: [Tool]
 } deriving (Show, Eq)
 
-initPlayer :: PType -> String -> Player
-initPlayer pt n = Player { name = n, pType = pt, hand = [], goldNuggets = 0, brokenTools = [] }
+initPlayer :: Role -> String -> Player
+initPlayer pt n = Player { name = n, playerRole = pt, hand = Hand [] [], goldNuggets = 0, brokenTools = [] }

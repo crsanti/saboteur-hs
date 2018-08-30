@@ -1,30 +1,28 @@
 module Game (
-  DeckCard (..),
   Game (..),
   Player (..),
 ) where
 
 import Data.List (elemIndex)
 
-import Card (DeckCard)
+import Card (Deck)
 import Player (Player)
 
 
 data Game = Game {
-  deck :: [DeckCard],
-  discardPile :: [DeckCard],
+  deck :: Deck,
+  discardPile :: Deck,
   players :: [Player],
   round :: Int,
   playerOnTurn :: Player
   }
 
 rotatePlayer :: Game -> Either String Game
-rotatePlayer game@Game{ players = ps, playerOnTurn = p }
-  | null ps   = Left "no players to rotate"
-  | otherwise =
-    case elemIndex p ps of
-      Just index -> Right $ game { playerOnTurn = nextPlayer index ps }
-      Nothing -> Left "player does not exist"
-    where
-      nextPlayer :: Int -> [Player] -> Player
-      nextPlayer i ps' = cycle ps' !! (i + 1)
+rotatePlayer Game{ players = [] } = Left "rotatePlayer :: no players to rotate"
+rotatePlayer game@Game{ players = ps, playerOnTurn = p } =
+  case elemIndex p ps of
+    Just i  -> Right $ game { playerOnTurn = nextPlayer i ps }
+    Nothing -> Left  $ "rotatePlayer :: Player " ++ show p ++ " does not exist"
+  where
+    nextPlayer :: Int -> [Player] -> Player
+    nextPlayer i ps' = cycle ps' !! (i + 1)

@@ -1,9 +1,7 @@
 module Board (
   Board,
-  PathCardSide (..),
   PathCard (..),
   initBoard,
-  rotatePathCard,
   get, set,
   up, right, down, left,
   recenter, goTo,
@@ -55,11 +53,6 @@ goTo x y g@(Grid (Zipper (Zipper _ x' _ _) y' _ _))
 recenter :: Grid a -> Grid a
 recenter = goTo 0 0
 
-rotatePathCard :: PathCard -> PathCard
-rotatePathCard (PathCard n e s w) = PathCard s w n e
-rotatePathCard (StoneCard n e s w) = StoneCard s w n e
-rotatePathCard pathCard             = pathCard
-
 type Board = Grid (Maybe PathCard)
 
 initBoard :: Board
@@ -76,15 +69,10 @@ initBoard =
     setLeftTreasureCard   t = set (Just t) . goTo 7 2
     setRightTreasureCard  t = set (Just t) . goTo 7 (-2)
     setCenterTreasureCard t = set (Just t) . goTo 7 0
-    setStartingPathCard = set (Just StartCard) . recenter
+    setStartingPathCard = undefined -- set (Just StartCard) . recenter
     treasurePool :: [PathCard]
-    treasurePool = [
-      StoneCard Closed Closed Open Open,
-      GoldCard,
-      StoneCard Closed Closed Open Open
-      ]
+    treasurePool = []
 
 serializeBoard :: Board -> [String]
 serializeBoard b = let cb = recenter b
-
                    in [""]
