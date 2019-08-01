@@ -1,42 +1,18 @@
-module Lib(
-  module Board,
-  module Card,
-  module Game,
-  module Player,
-  module State,
-  module Utils,
-  -- createGame,
-  showGameDetails,
-) where
+module Lib where
 
-import Control.Monad
-import Control.Monad.State
-import System.Random.Shuffle
+import System.Random(StdGen)
+import Game (Game, initGame)
+import Turn (PlayerAction)
 
-import Board
-import Card
-import Game
-import Player
-import State
-import Utils
+newGame :: [String] -> StdGen -> Either String Game
+newGame ps gen
+  | (validPlayersLength ps) = return $ initGame ps gen
+  | otherwise = Left "This game can only be players from 3 to 10 players"
+  where
+    validPlayersLength :: [a] -> Bool
+    validPlayersLength ps = (playersLength >= 3) && playersLength <= 10
+    playersLength :: Int
+    playersLength = length ps
 
--- createGame :: [String] -> IO ()
--- createGame [] = Left "At least 3 players required"
--- createGame ps = do
---   roles <- getAvailableRoles $ length ps
---   shuffled <- shuffleM roles
---   game <- setRoles shuffled ps
---   print game
-
--- setRoles :: [Role] -> [String] -> Either String Game
--- setRoles [] _  = Left "setRoles :: roles are empty"
--- setRoles _  [] = Left "setRoles :: players are empty"
--- setRoles rs ps = Right $ newGame { players = zipWith initPlayer rs ps }
-
-showGameDetails :: StateT Game IO ()
-showGameDetails = do
-  game <- get
-  lift $ print game
-
-startGame :: StateT Game IO ()
-startGame = undefined
+play :: Game -> PlayerAction -> Either Game String
+play = undefined
