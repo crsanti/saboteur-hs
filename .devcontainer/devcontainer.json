@@ -1,6 +1,7 @@
 {
   "name": "Haskell Sample",
   "dockerFile": "Dockerfile",
-  "appPort": 9000,
-  "extensions": ["alanz.vscode-hie-server"]
+  "extensions": [
+    "alanz.vscode-hie-server"
+  ]
 }
