@@ -39,15 +39,15 @@ performAction :: PlayerAction -> Game -> Game
 --       | otherwise                              = game
 
 performAction action@(PlayerAction p (PlayMapCard x y)) game
-  | (isPlayerOnTurn p game) && (hasPlayerActionCard p MapCard game) && ((x, y)`elem` goalPositions) = playMapCard action game
+  | isPlayerOnTurn p game && hasPlayerActionCard p MapCard game && ((x, y)`elem` goalPositions) = playMapCard action game
 
 -- performAction action@(PlayerAction p (ConfirmRevealedCard)) game
 --   | (isPlayerOnTurn p game) = fromMaybe game (updatePlayerTurn game)
 
-playMapCard action@(PlayerAction p card@(PlayMapCard  x y)) game@Game{ board = b } = fromMaybe game $ (setConfirmCard game) >>= (draw p)
+playMapCard action@(PlayerAction p card@(PlayMapCard  x y)) game@Game{ board = b } = fromMaybe game $ setConfirmCard game >>= draw p
   where
     setConfirmCard :: p -> Maybe Game
-    setConfirmCard g = (getCardAt x y b) >>= \card -> return game{ status = ToConfirmRevealedCard p card }
+    setConfirmCard g = getCardAt x y b >>= \card -> return game{ status = ToConfirmRevealedCard p card }
 
 -- updatePlayerTurn :: Game -> Maybe Game
 -- updatePlayerTurn game@Game{ players = ps, status = (ToPlay p) } = getNextPlayer >>= setNextPlayer

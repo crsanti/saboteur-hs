@@ -1,4 +1,4 @@
--- module Json where
+module Json where
 
 -- import Game
 -- import Card

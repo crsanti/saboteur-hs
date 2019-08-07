@@ -1,7 +1,6 @@
 module Card where
 
 import System.Random
-
 import Utils
 
 data GoldNuggetCard = GoldNugget1
@@ -31,11 +30,11 @@ data ActionCard = BrokenToolCard Tool
                 deriving (Eq)
 
 instance Show ActionCard where
-  show (BrokenToolCard t)               = "(💕" ++ (show t) ++ ")"
-  show (RepairToolCard t)               = "(💕" ++ (show t) ++ ")"
-  show (RepairDoubleToolCard t1 t2)     = "(💕" ++ (show t1) ++ (show t2) ++ ")"
-  show RockFallCard                     = "☄️ "
-  show MapCard                          = "🗺 "
+  show (BrokenToolCard t)           = "(💕" ++ (show t) ++ ")"
+  show (RepairToolCard t)           = "(💕" ++ (show t) ++ ")"
+  show (RepairDoubleToolCard t1 t2) = "(💕" ++ (show t1) ++ (show t2) ++ ")"
+  show RockFallCard                 = "☄️ "
+  show MapCard                      = "🗺 "
 
 data PathCardType = ConnectedCard
                   | DeadEndCard
@@ -44,7 +43,7 @@ data PathCardType = ConnectedCard
                   | StoneCard
                   deriving (Show, Eq)
 
-data PathCard = PathCard {
+data PathCard = PathCard{
   pathCardType :: PathCardType,
   north :: Bool,
   east :: Bool,
@@ -58,11 +57,11 @@ serializeSides PathCard{ north = n, east = e, south = s, west = w, rotated = r }
   [(boolToChar n), (boolToChar e), (boolToChar s), (boolToChar w), (boolToChar r)]
 
 instance Show PathCard where
-  show p@PathCard{ pathCardType = ConnectedCard } = "🔌 "   ++ (serializeSides p)
-  show p@PathCard{ pathCardType = DeadEndCard }   = "❌ "   ++ (serializeSides p)
-  show p@PathCard{ pathCardType = StartCard }     = "🏠 "   ++ (serializeSides p)
-  show p@PathCard{ pathCardType = GoldCard }      = "🏆 "   ++ (serializeSides p)
-  show p@PathCard{ pathCardType = StoneCard }     = "🌑 " ++ (serializeSides p)
+  show p@PathCard{ pathCardType = ConnectedCard } = "🔌 " ++ (serializeSides p)
+  show p@PathCard{ pathCardType = DeadEndCard   } = "❌ " ++ (serializeSides p)
+  show p@PathCard{ pathCardType = StartCard     } = "🏠 " ++ (serializeSides p)
+  show p@PathCard{ pathCardType = GoldCard      } = "🏆 " ++ (serializeSides p)
+  show p@PathCard{ pathCardType = StoneCard     } = "🌑 " ++ (serializeSides p)
 
 type CardProb = Int
 data Deck = Deck [PathCard] [ActionCard]
@@ -99,20 +98,20 @@ newDeck = Deck initPathCards initActionCards
     initPathCards :: [PathCard]
     initPathCards =
       replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = False, south = True,  west = False, rotated = False }) ++
-      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = False, east = True,  south = False, west = True, rotated = False }) ++
+      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = False, east = True,  south = False, west = True, rotated = False })  ++
       replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = True,  south = False, west = False, rotated = False }) ++
-      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = False, south = False, west = True, rotated = False }) ++
-      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = False, south = True,  west = True, rotated = False }) ++
-      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = True,  south = False, west = True, rotated = False }) ++
-      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = True,  south = True,  west = True, rotated = False }) ++
+      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = False, south = False, west = True, rotated = False })  ++
+      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = False, south = True,  west = True, rotated = False })  ++
+      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = True,  south = False, west = True, rotated = False })  ++
+      replicate 5 (PathCard{ pathCardType = ConnectedCard, north = True,  east = True,  south = True,  west = True, rotated = False })  ++
       [PathCard{ pathCardType = DeadEndCard, north = True,  east = False, south = False, west = False, rotated = False }] ++
       [PathCard{ pathCardType = DeadEndCard, north = False, east = True,  south = False, west = False, rotated = False }] ++
       [PathCard{ pathCardType = DeadEndCard, north = True,  east = True,  south = False, west = False, rotated = False }] ++
-      [PathCard{ pathCardType = DeadEndCard, north = True,  east = False, south = False, west = True, rotated = False }] ++
+      [PathCard{ pathCardType = DeadEndCard, north = True,  east = False, south = False, west = True, rotated = False }]  ++
       [PathCard{ pathCardType = DeadEndCard, north = True,  east = False, south = True,  west = False, rotated = False }] ++
-      [PathCard{ pathCardType = DeadEndCard, north = False, east = True,  south = False, west = True, rotated = False }] ++
+      [PathCard{ pathCardType = DeadEndCard, north = False, east = True,  south = False, west = True, rotated = False }]  ++
       [PathCard{ pathCardType = DeadEndCard, north = True,  east = True,  south = True,  west = False, rotated = False }] ++
-      [PathCard{ pathCardType = DeadEndCard, north = True,  east = True,  south = False, west = True, rotated = False }] ++
+      [PathCard{ pathCardType = DeadEndCard, north = True,  east = True,  south = False, west = True, rotated = False }]  ++
       [PathCard{ pathCardType = DeadEndCard, north = True,  east = True,  south = True,  west = True, rotated = False }]
     initActionCards :: [ActionCard]
     initActionCards =
@@ -152,13 +151,20 @@ cardToString :: PathCard -> String
 cardToString p@PathCard{ pathCardType = t } = pathCardTypeToChar t : serializeSides p
 
 stringToCard :: String -> PathCard
-stringToCard (t:n:e:s:w:r:[]) = PathCard{ pathCardType = charToPathCardType t, north = charToBool n,  east = charToBool e, south = charToBool s,  west = charToBool w, rotated = charToBool r }
+stringToCard [t, n, e, s, w, r] = PathCard{
+  pathCardType = charToPathCardType t,
+  north = charToBool n,
+  east = charToBool e,
+  south = charToBool s,
+  west = charToBool w,
+  rotated = charToBool r
+}
 
 startCard :: PathCard
-startCard = PathCard { pathCardType = StartCard, north = True, east = True, south = True, west = True, rotated = False }
+startCard = PathCard{ pathCardType = StartCard, north = True, east = True, south = True, west = True, rotated = False }
 
 goldCard :: PathCard
-goldCard = PathCard { pathCardType = GoldCard, north = True, east = True, south = True, west = True, rotated = False }
+goldCard = PathCard{ pathCardType = GoldCard, north = True, east = True, south = True, west = True, rotated = False }
 
 stoneCard :: PathCard
-stoneCard = PathCard { pathCardType = StoneCard, north = True, east = True, south = False, west = False, rotated = False }
+stoneCard = PathCard{ pathCardType = StoneCard, north = True, east = True, south = False, west = False, rotated = False }

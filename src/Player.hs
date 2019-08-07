@@ -35,10 +35,10 @@ initPlayers s ps =
     getNeededRoles  9 = Miner    : getNeededRoles 8
     getNeededRoles 10 = Saboteur : getNeededRoles 9
     newPlayer :: Role -> String -> Player
-    newPlayer r n = Player { name = n, playerRole = r, hand = (Deck [] []), goldNuggets = 0, brokenTools = [] }
+    newPlayer r n = Player{ name = n, playerRole = r, hand = Deck [] [], goldNuggets = 0, brokenTools = [] }
 
 updatePlayer :: Player -> [Player] -> [Player]
-updatePlayer p ps = map (replacePlayer p) ps
+updatePlayer p = map (replacePlayer p)
   where
     replacePlayer :: Player -> Player -> Player
     replacePlayer p@Player{ name = n } p'@Player{ name = n' }
@@ -46,4 +46,4 @@ updatePlayer p ps = map (replacePlayer p) ps
       | otherwise = p'
 
 getPlayerFromName :: String -> [Player] -> Maybe Player
-getPlayerFromName p ps = find (\Player{ name = n } -> n == p) ps
+getPlayerFromName p = find (\Player{ name = n } -> n == p)

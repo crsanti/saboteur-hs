@@ -10,7 +10,7 @@ randomList 0 g   = ([], g)
 randomList n gen =
   let (x, gen')   = randomR (1, 10) gen
       (xs, gen'') = randomList (n - 1) gen'
-  in (x:xs, gen'')
+  in  (x:xs, gen'')
 
 shuffleList :: StdGen -> [a] -> [a]
 shuffleList g xs = shuffle' xs (length xs) g
