@@ -42,3 +42,6 @@ boolToChar = bool '0' '1'
 charToBool :: Char -> Bool
 charToBool '0' = False
 charToBool '1' = True
+
+notEmpty :: Foldable t => t a -> Bool
+notEmpty = not . null

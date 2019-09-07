@@ -4,9 +4,7 @@ import System.Random
 import Data.List
 import Card
 import Utils
-import Data.Maybe
 
--- | Cell :: (x, y, PathCard)
 type Cell = (Int, Int, PathCard)
 type Board = [Cell]
 type Coord = (Int, Int)
@@ -26,15 +24,12 @@ initBoard g = startCardWithPosition : setGoalPositions (shuffleList g goalCards)
     setGoalPositions :: [PathCard] -> [Cell]
     setGoalPositions = zipWith (\(x,y) c -> (x,y,c)) goalPositions
 
-getCardAt :: Int -> Int -> Board -> Maybe PathCard
-getCardAt x y board = do
-  (_, _, card@PathCard{ pathCardType = t }) <- find (byCoords x y) board
-  case t of
-    ConnectedCard -> return card
-    DeadEndCard   -> return card
-    _             -> fail "Not a valid PathCard"
+getCardAt :: Board -> Coord -> Maybe PathCard
+getCardAt board (x,y) = do
+  (_, _, c) <- find (byCoords (x, y)) board
+  return c
   where
-    byCoords x y (x', y', _) = x == x' && y == y'
+    byCoords (x,y) (x', y', _) = x == x' && y == y'
 
 removeCardAt :: Coord -> Board -> Board
 removeCardAt (x, y) = filter (not . isAtPosition)
@@ -50,15 +45,12 @@ isGoalReached b = isPathCompleted (b, []) (0, 0, startCard)
     boardWithoutStartCard = removeCardAt (0, 0) b
 
 type BoardAcc = (Board, Board)
+
 isPathCompleted :: (Board, Board) -> Cell -> Bool
 isPathCompleted acc cell =
   let connections = getCellConnections cell (fst acc)
-  in
-    any isGoldCardCell connections                 -- One connection is gold
-    || areOtherPathsCompleted acc cell connections -- Check other connections
+  in any isGoldCardCell connections || areOtherPathsCompleted acc cell connections
   where
-    hasConnections :: Board -> Bool
-    hasConnections = not . null
     areOtherPathsCompleted :: BoardAcc -> Cell -> Board -> Bool
     areOtherPathsCompleted acc cell = any $ \cell' -> isPathCompleted (nextAcc acc cell) cell'
     nextAcc :: BoardAcc -> Cell -> BoardAcc
@@ -66,10 +58,6 @@ isPathCompleted acc cell =
     isGoldCardCell :: Cell -> Bool
     isGoldCardCell (_, _, PathCard{ pathCardType = GoldCard }) = True
     isGoldCardCell _                                           = False
-
--- 1) The card has no connections? False
--- 2) The card has connection but is not the gold card? Watch all connections
--- 3) The card is connected to gold card? True
 
 getCellConnections :: Cell -> Board -> Board
 getCellConnections c = filter (areCellsConnected c)
@@ -86,6 +74,35 @@ getDirection (x, y) (x', y')
   | otherwise              = fail "Not connected"
 
 canFollowPath :: PathCard -> PathCard -> Direction -> Bool
-canFollowPath p p' d
-  | pathCardType p  == DeadEndCard || pathCardType p' == DeadEndCard = False
-  | otherwise = areCardsConnected p p' d
+canFollowPath PathCard{ pathCardType = DeadEndCard } _ _= False
+canFollowPath _ PathCard{ pathCardType = DeadEndCard } _ = False
+canFollowPath p p' d = areCardsConnected (unFlipPathCard p) d (unFlipPathCard p')
+  where
+    unFlipPathCard p
+      | rotated p = flipPathCard p
+      | otherwise = p
+
+canPlacePathCard :: Board -> PathCard -> Coord -> Bool
+canPlacePathCard b p cs | notEmpty (getCardAt b cs) = False
+canPlacePathCard b p cs =
+  let ps = getSurroundingCards b cs
+  in canPlacePathCard' p ps || canPlacePathCard' (flipPathCard p) ps
+  where
+    canPlacePathCard' :: PathCard -> [(Maybe PathCard, Direction)] -> Bool
+    canPlacePathCard' p = all (maybeAreCardsConnected p)
+    maybeAreCardsConnected :: PathCard -> (Maybe PathCard, Direction) -> Bool
+    maybeAreCardsConnected p (p', d) = maybe True (areCardsConnected p d) p'
+    canCardsBePlacedSideBySide :: PathCard -> Direction -> PathCard -> Bool
+    canCardsBePlacedSideBySide p North p' = north p == south p'
+    canCardsBePlacedSideBySide p East  p' = east  p == west  p'
+    canCardsBePlacedSideBySide p South p' = south p == north p'
+    canCardsBePlacedSideBySide p West  p' = west  p == east  p'
+
+
+getSurroundingCards :: Board -> Coord -> [(Maybe PathCard, Direction)]
+getSurroundingCards b (x, y)= [
+    (getCardAt b (x, y + 1), North),
+    (getCardAt b (x + 1, y), East ),
+    (getCardAt b (x, y - 1), South),
+    (getCardAt b (x - 1, y), West )
+  ]

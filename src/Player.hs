@@ -11,17 +11,21 @@ data Role = Miner
           deriving (Show, Eq)
 
 type Hand = Deck
+type BrokenTools = (Bool, Bool, Bool)
 
 data Player = Player {
   hand :: Hand,
   name :: String,
   playerRole :: Role,
-  goldNuggets :: Int,
-  brokenTools :: [Tool]
+  goldNuggets :: [GoldNuggetCard],
+  brokenTools :: BrokenTools
 } deriving (Show, Eq)
 
-initPlayers :: StdGen -> [String] -> [Player]
-initPlayers s ps =
+newPlayer :: Role -> String -> Player
+newPlayer r n = Player{ name = n, playerRole = r, hand = Deck [] [], goldNuggets = [], brokenTools = (False, False, False) }
+
+setupPlayers :: StdGen -> [String] -> [Player]
+setupPlayers s ps =
   let rs = shuffleList s $ getNeededRoles (length ps)
   in zipWith newPlayer rs ps
   where
@@ -34,8 +38,6 @@ initPlayers s ps =
     getNeededRoles  8 = Miner    : getNeededRoles 7
     getNeededRoles  9 = Miner    : getNeededRoles 8
     getNeededRoles 10 = Saboteur : getNeededRoles 9
-    newPlayer :: Role -> String -> Player
-    newPlayer r n = Player{ name = n, playerRole = r, hand = Deck [] [], goldNuggets = 0, brokenTools = [] }
 
 updatePlayer :: Player -> [Player] -> [Player]
 updatePlayer p = map (replacePlayer p)

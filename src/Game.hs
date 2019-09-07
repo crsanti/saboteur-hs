@@ -1,20 +1,16 @@
 module Game where
 
 import System.Random
-
-import Card
-import Player (Player(..), initPlayers)
-import Board
-import Utils
 import Data.List
 
-data GameStatus = ToStartGame
-                | ToAddPlayers
+import Card
+import Player
+import Board
+import Utils
+
+data GameStatus = GameFinished [String] -- winner (winners in case of tie)
                 | ToPlay String
-                | ToConfirmRevealedCard String PathCard
-                | RoundFinished
                 | ToSelectNugget String
-                | GameFinished
                 deriving (Show)
 
 data Game = Game {
@@ -24,32 +20,35 @@ data Game = Game {
   status :: GameStatus,
   seed :: StdGen,
   board :: Board,
-  goldDeck :: [GoldNuggetCard]
+  goldDeck :: [GoldNuggetCard],
+  roundWinners :: [String]
 }
 
 instance Show Game where
   show game = "{\n\
-    \  deck: "      ++ show (deck game)      ++ "\n\
-    \  players: "   ++ show (players game)   ++ "\n\
-    \  gameRound: " ++ show (gameRound game) ++ "\n\
-    \  status: "    ++ show (status game)    ++ "\n\
-    \  seed: "      ++ show (seed game)      ++ "\n\
-    \  board: "     ++ show (board game)     ++ "\n\
-    \  goldDeck: "  ++ show (goldDeck game)  ++ "\n\
+    \  deck: "         ++ show (deck game)      ++ "\n\
+    \  players: "      ++ show (players game)   ++ "\n\
+    \  gameRound: "    ++ show (gameRound game) ++ "\n\
+    \  status: "       ++ show (status game)    ++ "\n\
+    \  seed: "         ++ show (seed game)      ++ "\n\
+    \  board: "        ++ show (board game)     ++ "\n\
+    \  goldDeck: "     ++ show (goldDeck game)  ++ "\n\
+    \  roundWinners: " ++ show (goldDeck game)  ++ "\n\
     \}"
 
 initGame :: [String] -> StdGen -> Game
 initGame ps s = dealStartingCards $ newGame ps s
   where
     newGame :: [String] -> StdGen -> Game
-    newGame ps s = Game {
-      deck      = shuffleDeck s newDeck,
-      players   = initPlayers s ps,
-      gameRound = 1,
-      status    = ToAddPlayers,
-      seed      = s,
-      board     = initBoard s,
-      goldDeck  = shuffleList s newGoldenDeck
+    newGame ps s = let ps'@(p:_) = shuffleList s ps in Game {
+      deck         = shuffleDeck s newDeck,
+      players      = setupPlayers s ps,
+      gameRound    = 1,
+      status       = ToPlay p,
+      seed         = s,
+      board        = initBoard s,
+      goldDeck     = shuffleList s newGoldenDeck,
+      roundWinners = []
     }
 
 dealStartingCards :: Game -> Game
@@ -60,16 +59,21 @@ dealStartingCards game = dealStartingCards' (numberOfPlayers game) game
     dealStartingCards' pos game@Game{ players = ps } =
       let (xs, s)  = getRandomProbs (numberOfPlayers game) (seed game)
           p        = ps !! (pos - 1)
-          (d, p') = dealCardsToPlayer xs (deck game) p
-      in dealStartingCards' (pos - 1) game{ seed = s, deck = d, players = (replaceNth (pos - 1) p' (players game)) }
+          (d, p')  = dealCardsToPlayer xs (deck game) p
+      in dealStartingCards' (pos - 1) game{ seed = s, deck = d, players = replaceNth (pos - 1) p' (players game) }
     numberOfPlayers :: Game -> Int
     numberOfPlayers = length . players
     dealCardsToPlayer :: [Int] -> Deck -> Player -> (Deck, Player)
     dealCardsToPlayer [] d p = (d, p)
     dealCardsToPlayer (x:xs) (Deck (p:ps) (a:as)) player@Player{ hand = (Deck playerPathCards playerActionCards) }
-      | x > 6     = dealCardsToPlayer xs (Deck (p:ps) as) player { hand = (Deck playerPathCards (a:playerActionCards)) }
-      | otherwise = dealCardsToPlayer xs (Deck ps (a:as)) player { hand = (Deck (p:playerPathCards) playerActionCards) }
+      | x > 6     = dealCardsToPlayer xs (Deck (p:ps) as) player { hand = Deck playerPathCards (a:playerActionCards) }
+      | otherwise = dealCardsToPlayer xs (Deck ps (a:as)) player { hand = Deck (p:playerPathCards) playerActionCards }
 
+playerInGame :: String -> Game -> Bool
+playerInGame p Game{ players = ps } = any sameName ps
+  where
+    sameName :: Player -> Bool
+    sameName = (==p) . name
 
 -- getPlayerFromName :: String -> Game -> Either String Player
 -- getPlayerFromName target game@Game{players = ps} = maybe (Left "getPlayerFromName :: player does not exist") Right foundPlayer

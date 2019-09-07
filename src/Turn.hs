@@ -8,18 +8,38 @@ import Board
 import Utils
 import Player
 
-data PlayerActionType = PlayActionCard ActionCard String
-                      | PlayRockFall Int Int
-                      | PlayPathCard PathCard Int Int
-                      | PlayMapCard Int Int
+data PlayerAction = PlayActionCard ActionCard String
+                      | PlayRockFall Coord
+                      | PlayPathCard PathCard Coord
+                      | PlayMapCard Coord
                       | ConfirmRevealedCard
                       | DiscardActionCard ActionCard
                       | DiscardPathCard PathCard
                       | SelectNugget GoldNuggetCard
                       deriving (Show)
 
-data PlayerAction = PlayerAction String PlayerActionType
-                  deriving (Show)
+
+getPlayActions :: Game -> Either String [PlayerAction]
+getPlayActions Game{ status = s } | not (isPlayStatus s) = Left "Invalid status"
+getPlayActions g@Game{ status = ToPlay p } = return $ getPathCardActions g
+
+isPlayStatus :: GameStatus -> Bool
+isPlayStatus (ToPlay _) = True
+isPlayStatus _          = False
+
+getPathCardActions :: Game -> [PlayerAction]
+getPathCardActions g@Game{ status = ToPlay p, players = ps, board = b } = maybe [] (getPathCardActions' b) (getPlayerFromName p ps)
+getPathCardActions Game{ status = _ } = []
+
+getPathCardActions' :: Board -> Player -> [PlayerAction]
+getPathCardActions' _ Player{ hand = Deck [] _ } = []
+getPathCardActions' _ Player{ brokenTools = b } | anyBrokenTool b = []
+  where
+    anyBrokenTool :: BrokenTools -> Bool
+    anyBrokenTool (False, False, False) = True
+    anyBrokenTool _                     = False
+getPathCardActions' bs Player{ hand = Deck cs _ } = []
+
 
 {-
 On his turn, a player must first play a card. This means:
@@ -28,7 +48,7 @@ On his turn, a player must first play a card. This means:
   * Pass, putting one card face down on the discard pile.
 -}
 
-performAction :: PlayerAction -> Game -> Game
+-- performAction :: PlayerAction -> Game -> Game
 -- performAction (PlayerAction p _) game@Game{ status = (ToPlay p') } | p /= p' = game
 -- performAction (PlayerAction p _) game@Game{ status = (ToConfirmRevealedCard p' _) } | p /= p' = game
 -- performAction (PlayerAction _ (PlayRockFall x y)) game@Game{ board = b } = maybe game removePathCard (getCardAt x y b)
@@ -38,16 +58,16 @@ performAction :: PlayerAction -> Game -> Game
 --       | p == ConnectedCard || p == DeadEndCard = game{ board = removeCardAt x y b }
 --       | otherwise                              = game
 
-performAction action@(PlayerAction p (PlayMapCard x y)) game
-  | isPlayerOnTurn p game && hasPlayerActionCard p MapCard game && ((x, y)`elem` goalPositions) = playMapCard action game
+-- performAction action@(PlayerAction p (PlayMapCard (x, y))) game
+--   | isPlayerOnTurn p game && hasPlayerActionCard p MapCard game && ((x, y)`elem` goalPositions) = playMapCard action game
 
 -- performAction action@(PlayerAction p (ConfirmRevealedCard)) game
 --   | (isPlayerOnTurn p game) = fromMaybe game (updatePlayerTurn game)
 
-playMapCard action@(PlayerAction p card@(PlayMapCard  x y)) game@Game{ board = b } = fromMaybe game $ setConfirmCard game >>= draw p
-  where
-    setConfirmCard :: p -> Maybe Game
-    setConfirmCard g = getCardAt x y b >>= \card -> return game{ status = ToConfirmRevealedCard p card }
+-- playMapCard action@(PlayerAction p card@(PlayMapCard (x, y))) game@Game{ board = b } = fromMaybe game $ setConfirmCard game >>= draw p
+--   where
+--     setConfirmCard :: p -> Maybe Game
+--     setConfirmCard g = getCardAt x y b >>= \card -> return game{ status = ToConfirmRevealedCard p card }
 
 -- updatePlayerTurn :: Game -> Maybe Game
 -- updatePlayerTurn game@Game{ players = ps, status = (ToPlay p) } = getNextPlayer >>= setNextPlayer
@@ -59,9 +79,8 @@ playMapCard action@(PlayerAction p card@(PlayMapCard  x y)) game@Game{ board = b
 --     setNextPlayer nextP = return game{ status = ToPlay (name nextP) }
 
 isPlayerOnTurn :: String -> Game -> Bool
-isPlayerOnTurn p Game{ status = ToPlay p' }                  = p == p'
-isPlayerOnTurn p Game{ status = ToConfirmRevealedCard p' _ } = p == p'
-isPlayerOnTurn p Game{ status = ToSelectNugget p' }          = p == p'
+isPlayerOnTurn p Game{ status = ToPlay p' }         = p == p'
+isPlayerOnTurn p Game{ status = ToSelectNugget p' } = p == p'
 
 hasPlayerActionCard :: String -> ActionCard -> Game -> Bool
 hasPlayerActionCard p c Game{ players = ps } = maybe False (actionCardInHand c) (getPlayerFromName p ps)
