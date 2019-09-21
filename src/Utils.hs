@@ -45,3 +45,13 @@ charToBool '1' = True
 
 notEmpty :: Foldable t => t a -> Bool
 notEmpty = not . null
+
+concatUnique :: Eq a => [[a]] -> [a]
+concatUnique = nub . concat
+
+tripleToPair :: (a, b, c) -> (a, b)
+tripleToPair (x, y, _) = (x, y)
+
+maybeToEither :: e -> Maybe a -> Either e a
+maybeToEither _ (Just a) = Right a
+maybeToEither e Nothing  = Left e

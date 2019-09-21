@@ -11,6 +11,7 @@ data Role = Miner
           deriving (Show, Eq)
 
 type Hand = Deck
+-- BrokenTools :: (Pickaxe, Lantern, Cart)
 type BrokenTools = (Bool, Bool, Bool)
 
 data Player = Player {
