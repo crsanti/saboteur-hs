@@ -7,6 +7,7 @@ import Turn
 import Card
 import Board
 import Mocks
+import Utils
 
 newGame :: [String] -> StdGen -> Either String Game
 newGame ps gen
@@ -18,10 +19,9 @@ newGame ps gen
     playersLength :: Int
     playersLength = length ps
 
-play :: Game -> PlayerAction -> Either Game String
-play = undefined
-
-getActions :: Game -> Either String [PlayerAction]
-getActions Game{ gameRound = r } | r `notElem` [1..3] = Left "Invalid round"
-getActions Game{ status = ToSelectNugget p, goldDeck = gs } = return $ map SelectNugget gs
-getActions g@Game{ status = ToPlay _ }  = getPlayActions g
+play :: Game -> String -> PlayerAction -> Either String Game
+play g p a | canPlayAction = performAction g a
+           | otherwise     = Left "Invalid action"
+  where
+    canPlayAction :: Bool
+    canPlayAction = either (const False) (a `elem`) (getActions p g)

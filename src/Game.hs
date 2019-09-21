@@ -13,10 +13,15 @@ data GameStatus = GameFinished [String] -- winner (winners in case of tie)
                 | ToSelectNugget String
                 deriving (Show)
 
+data GameRound = Round1
+               | Round2
+               | Round3
+               deriving (Show)
+
 data Game = Game {
   deck :: Deck,
   players :: [Player],
-  gameRound :: Int,
+  gameRound :: GameRound,
   status :: GameStatus,
   seed :: StdGen,
   board :: Board,
@@ -43,7 +48,7 @@ initGame ps s = dealStartingCards $ newGame ps s
     newGame ps s = let ps'@(p:_) = shuffleList s ps in Game {
       deck         = shuffleDeck s newDeck,
       players      = setupPlayers s ps,
-      gameRound    = 1,
+      gameRound    = Round1,
       status       = ToPlay p,
       seed         = s,
       board        = initBoard s,
