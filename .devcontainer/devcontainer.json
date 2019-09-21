@@ -1,9 +1,9 @@
 {
   "name": "Haskell Sample",
-  "image": "devcontainer-haskell:working",
+  "dockerFile": "Dockerfile",
   "extensions": [
-    "alanz.vscode-hie-server",
-    "hoovercj.haskell-linter"
+    "hoovercj.haskell-linter",
+    "digitalasset.ghcide"
   ],
   "settings": {
     "languageServerHaskell.formattingProvider": "none"

@@ -18,30 +18,21 @@ RUN apt-get update \
   #
   # Install HIE Dependencies
   && apt-get -y install libicu-dev libtinfo-dev libgmp-dev \
-  #
-  # Install HIE
-  && git clone https://github.com/haskell/haskell-ide-engine --branch=0.12.0.0 --recurse-submodules \
-  && cd /haskell-ide-engine \
-  && sed -i "s|lts-13.18 # GHC 8.6.4|lts-13.30 # GHC 8.6.5|g" install/shake.yaml \
-  && sed -i "s|, shake == 0.17.8|, shake == 0.17.9|g" install/hie-install.cabal \
-  #
   # Ensure stack is up to date
-  && stack upgrade \
-  && stack ./install.hs stack-hie-8.6.5 \
-  && stack ./install.hs stack-build-data \
-  #
-  # Clean HIE build files
-  && rm -rf /haskell-ide-engine \
-  #
-  # Clean up
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/*
 
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+RUN stack upgrade
+RUN git clone https://github.com/digital-asset/daml.git
+WORKDIR /daml/compiler/ghcide
+RUN sed -i "s/^resolver:.*/resolver: lts-14.5/g" ./stack.yaml
+RUN stack install
+RUN stack install hlint
+RUN stack install hie-bios
 
 # Switch back to dialog for any ad-hoc use of apt-get
-ENV DEBIAN_FRONTEND=
 
 FROM haskell:8.6.5
 
@@ -63,7 +54,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
-COPY --from=builder /root/.hoogle $HOME
+# COPY --from=builder /root/.hoogle $HOME
 COPY --from=builder /root/.local $HOME
 COPY --from=builder /root/.stack $HOME
 
