@@ -3,7 +3,7 @@
   "dockerFile": "Dockerfile",
   "extensions": [
     "hoovercj.haskell-linter",
-    "digitalasset.ghcide"
+    "digitalassetholdingsllc.ghcide"
   ],
   "settings": {
     "languageServerHaskell.formattingProvider": "none"
