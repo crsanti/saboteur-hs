@@ -9,36 +9,73 @@ import Utils
 import Player
 
 data PlayerAction = PlayActionCard ActionCard String
-                      | PlayRockFall Coord
-                      | PlayPathCard PathCard Coord
-                      | PlayMapCard Coord
-                      | ConfirmRevealedCard
-                      | DiscardActionCard ActionCard
-                      | DiscardPathCard PathCard
-                      | SelectNugget GoldNuggetCard
-                      deriving (Show)
+                  | PlayRockFall Coord
+                  | PlayPathCard PathCard Coord
+                  | PlayMapCard Coord
+                  | ConfirmRevealedCard
+                  | DiscardActionCard ActionCard
+                  | DiscardPathCard PathCard
+                  | SelectNugget GoldNuggetCard
+                  deriving (Show, Eq)
 
+getActions :: Game -> Either String [PlayerAction]
+getActions g = case status g of
+  GameFinished          _   -> Left "Game is already over"
+  ToSelectNugget        _   -> Right $ map SelectNugget (goldDeck g)
+  ToConfirmRevealedCard _ _ -> Right [ConfirmRevealedCard]
+  ToPlay                p   ->
+    let player            = getPlayerFromName p (players g)
+        pathCardActions   = maybe [] (getPathCardActions (board g)) player
+        actionCardActions = maybe [] (getActionCardActions (players g) (board g)) player
+    in Right $ pathCardActions ++ actionCardActions
 
-getPlayActions :: Game -> Either String [PlayerAction]
-getPlayActions Game{ status = s } | not (isPlayStatus s) = Left "Invalid status"
-getPlayActions g@Game{ status = ToPlay p } = return $ getPathCardActions g
-
-isPlayStatus :: GameStatus -> Bool
-isPlayStatus (ToPlay _) = True
-isPlayStatus _          = False
-
-getPathCardActions :: Game -> [PlayerAction]
-getPathCardActions g@Game{ status = ToPlay p, players = ps, board = b } = maybe [] (getPathCardActions' b) (getPlayerFromName p ps)
-getPathCardActions Game{ status = _ } = []
-
-getPathCardActions' :: Board -> Player -> [PlayerAction]
-getPathCardActions' _ Player{ hand = Deck [] _ } = []
-getPathCardActions' _ Player{ brokenTools = b } | anyBrokenTool b = []
+getPathCardActions :: Board -> Player -> [PlayerAction]
+getPathCardActions _ Player{ hand = Deck [] _ } = []
+getPathCardActions _ Player{ brokenTools = b } | anyBrokenTool b = []
   where
     anyBrokenTool :: BrokenTools -> Bool
-    anyBrokenTool (False, False, False) = True
-    anyBrokenTool _                     = False
-getPathCardActions' bs Player{ hand = Deck cs _ } = []
+    anyBrokenTool (False, False, False) = False
+    anyBrokenTool _                     = True
+getPathCardActions b Player{ hand = Deck cs _ } =
+  [PlayPathCard c coord | coord <- getEmptyCellsFromStart b, c <- cs, canPlacePathCard b c coord]
+
+getActionCardActions :: [Player] -> Board -> Player -> [PlayerAction]
+getActionCardActions ps b Player{ hand = Deck _ cs } = concatMap getActionsForCard cs
+  where
+    getActionsForCard :: ActionCard -> [PlayerAction]
+    getActionsForCard c@(BrokenToolCard t)          = [PlayActionCard c (name p) | p <- ps, canBreakTool t p]
+    getActionsForCard c@(RepairToolCard t)          = [PlayActionCard c (name p) | p <- ps, canRepairTool t p]
+    getActionsForCard c@(RepairDoubleToolCard t t') = [PlayActionCard c (name p) | p <- ps, canRepairTool t p || canRepairTool t' p]
+    getActionsForCard RockFallCard                  = [PlayRockFall (x, y) | (x, y, p) <- b, p `notElem` startCard : goalCards]
+    getActionsForCard MapCard                       = map (PlayMapCard . tripleToPair) $ getUnflippedGoalCells b
+
+canBreakTool :: Tool -> Player -> Bool
+canBreakTool Pickaxe Player{ brokenTools = (False, _, _)} = True
+canBreakTool Lantern Player{ brokenTools = (_, False, _)} = True
+canBreakTool Cart Player{ brokenTools = (_, _, False)}    = True
+canBreakTool _ _ = False
+
+canRepairTool :: Tool -> Player -> Bool
+canRepairTool Pickaxe Player{ brokenTools = (True, _, _)} = True
+canRepairTool Lantern Player{ brokenTools = (_, True, _)} = True
+canRepairTool Cart Player{ brokenTools = (_, _, True)}    = True
+canRepairTool _ _ = False
+
+{-
+PlayActionCard ActionCard String
+PlayRockFall Coord
+PlayPathCard PathCard Coord
+PlayMapCard Coord
+ConfirmRevealedCard
+DiscardActionCard ActionCard
+DiscardPathCard PathCard
+SelectNugget GoldNuggetCard
+-}
+performAction :: Game -> PlayerAction -> Either String Game
+performAction g@Game{ status = (ToPlay p) } (PlayMapCard cs)
+  | cs `notElem` goalPositions = Left "Invalid goal card location"
+  | otherwise = (\c -> g{status = ToConfirmRevealedCard p c}) <$>
+  maybeToEither ("No card at position" ++ show cs) (getCardAt (board g) cs)
 
 
 {-
@@ -79,8 +116,10 @@ On his turn, a player must first play a card. This means:
 --     setNextPlayer nextP = return game{ status = ToPlay (name nextP) }
 
 isPlayerOnTurn :: String -> Game -> Bool
-isPlayerOnTurn p Game{ status = ToPlay p' }         = p == p'
-isPlayerOnTurn p Game{ status = ToSelectNugget p' } = p == p'
+isPlayerOnTurn p Game{ status = ToPlay p' }                  = p == p'
+isPlayerOnTurn p Game{ status = ToSelectNugget p' }          = p == p'
+isPlayerOnTurn p Game{ status = ToConfirmRevealedCard p' _ } = p == p'
+isPlayerOnTurn _ _                                           = False
 
 hasPlayerActionCard :: String -> ActionCard -> Game -> Bool
 hasPlayerActionCard p c Game{ players = ps } = maybe False (actionCardInHand c) (getPlayerFromName p ps)

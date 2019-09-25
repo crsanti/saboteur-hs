@@ -10,6 +10,7 @@ import Utils
 
 data GameStatus = GameFinished [String] -- winner (winners in case of tie)
                 | ToPlay String
+                | ToConfirmRevealedCard String PathCard
                 | ToSelectNugget String
                 deriving (Show)
 
@@ -79,6 +80,9 @@ playerInGame p Game{ players = ps } = any sameName ps
   where
     sameName :: Player -> Bool
     sameName = (==p) . name
+
+isPlayer :: String -> Game -> Bool
+isPlayer p Game{ players = ps } = p `elem` map name ps
 
 -- getPlayerFromName :: String -> Game -> Either String Player
 -- getPlayerFromName target game@Game{players = ps} = maybe (Left "getPlayerFromName :: player does not exist") Right foundPlayer

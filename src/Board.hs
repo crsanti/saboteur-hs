@@ -4,8 +4,10 @@ import System.Random
 import Data.List
 import Card
 import Utils
+import Data.Maybe
 
 type Cell = (Int, Int, PathCard)
+type MaybeCell = (Int, Int, Maybe PathCard)
 type Board = [Cell]
 type Coord = (Int, Int)
 
@@ -16,11 +18,12 @@ goalPositions = [
   (2,8)
   ]
 
+startCardCell :: Cell
+startCardCell = (0, 0, startCard)
+
 initBoard :: StdGen -> Board
-initBoard g = startCardWithPosition : setGoalPositions (shuffleList g goalCards)
+initBoard g = startCardCell : setGoalPositions (shuffleList g goalCards)
   where
-    startCardWithPosition = (0, 0, startCard)
-    goalCards = [goldCard, stoneCard, stoneCard]
     setGoalPositions :: [PathCard] -> [Cell]
     setGoalPositions = zipWith (\(x,y) c -> (x,y,c)) goalPositions
 
@@ -37,27 +40,23 @@ removeCardAt (x, y) = filter (not . isAtPosition)
     isAtPosition :: Cell -> Bool
     isAtPosition (x', y', _) = x /= x' && y /= y'
 
-
-isGoalReached :: Board -> Bool
-isGoalReached [] = False
-isGoalReached b = isPathCompleted (b, []) (0, 0, startCard)
+getCellFromCoord :: Board -> Coord -> Maybe Cell
+getCellFromCoord board coord@(x, y) = buildCell coord <$> getCardAt board coord
   where
-    boardWithoutStartCard = removeCardAt (0, 0) b
+    buildCell :: Coord -> PathCard -> Cell
+    buildCell (x, y) c = (x, y, c)
 
-type BoardAcc = (Board, Board)
+isGoldReached :: Board -> Bool
+isGoldReached b = maybe False (isPathCompletedTo b) $ find (\ (x, y, p) -> isGoldCard p) b
 
-isPathCompleted :: (Board, Board) -> Cell -> Bool
-isPathCompleted acc cell =
-  let connections = getCellConnections cell (fst acc)
-  in any isGoldCardCell connections || areOtherPathsCompleted acc cell connections
+isPathCompletedTo :: Board -> Cell -> Bool
+isPathCompletedTo b = isPathCompletedTo' b startCardCell
   where
-    areOtherPathsCompleted :: BoardAcc -> Cell -> Board -> Bool
-    areOtherPathsCompleted acc cell = any $ \cell' -> isPathCompleted (nextAcc acc cell) cell'
-    nextAcc :: BoardAcc -> Cell -> BoardAcc
-    nextAcc (board, visited) cell = (filter (/= cell) board, cell:visited)
-    isGoldCardCell :: Cell -> Bool
-    isGoldCardCell (_, _, PathCard{ pathCardType = GoldCard }) = True
-    isGoldCardCell _                                           = False
+    isPathCompletedTo' :: Board -> Cell -> Cell -> Bool
+    isPathCompletedTo' board sourceCell destinationCell =
+      let connections = getCellConnections sourceCell board
+      in destinationCell `elem` connections ||
+        any (\nextSourceCell -> isPathCompletedTo' (filter (/= sourceCell) board) nextSourceCell destinationCell) connections
 
 getCellConnections :: Cell -> Board -> Board
 getCellConnections c = filter (areCellsConnected c)
@@ -79,30 +78,57 @@ canFollowPath _ PathCard{ pathCardType = DeadEndCard } _ = False
 canFollowPath p p' d = areCardsConnected (unFlipPathCard p) d (unFlipPathCard p')
   where
     unFlipPathCard p
-      | rotated p = flipPathCard p
+      | rotated p = flipPathCard p
       | otherwise = p
 
 canPlacePathCard :: Board -> PathCard -> Coord -> Bool
 canPlacePathCard b p cs | notEmpty (getCardAt b cs) = False
 canPlacePathCard b p cs =
-  let ps = getSurroundingCards b cs
+  let ps = getSurroundingCardsWithDirection b cs
   in canPlacePathCard' p ps || canPlacePathCard' (flipPathCard p) ps
   where
-    canPlacePathCard' :: PathCard -> [(Maybe PathCard, Direction)] -> Bool
-    canPlacePathCard' p = all (maybeAreCardsConnected p)
-    maybeAreCardsConnected :: PathCard -> (Maybe PathCard, Direction) -> Bool
-    maybeAreCardsConnected p (p', d) = maybe True (areCardsConnected p d) p'
+    canPlacePathCard' :: PathCard -> [(PathCard, Direction)] -> Bool
+    canPlacePathCard' p = all (\(p', d) -> areCardsConnected p d p')
     canCardsBePlacedSideBySide :: PathCard -> Direction -> PathCard -> Bool
     canCardsBePlacedSideBySide p North p' = north p == south p'
     canCardsBePlacedSideBySide p East  p' = east  p == west  p'
     canCardsBePlacedSideBySide p South p' = south p == north p'
     canCardsBePlacedSideBySide p West  p' = west  p == east  p'
 
-
-getSurroundingCards :: Board -> Coord -> [(Maybe PathCard, Direction)]
-getSurroundingCards b (x, y)= [
-    (getCardAt b (x, y + 1), North),
-    (getCardAt b (x + 1, y), East ),
-    (getCardAt b (x, y - 1), South),
-    (getCardAt b (x - 1, y), West )
+getSurroundingCells :: Board -> Coord -> [MaybeCell]
+getSurroundingCells b (x, y) = [
+  getSurroundingCell b (x, y + 1),
+  getSurroundingCell b (x + 1, y),
+  getSurroundingCell b (x, y - 1),
+  getSurroundingCell b (x - 1, y)
   ]
+  where
+    getSurroundingCell :: Board -> Coord -> MaybeCell
+    getSurroundingCell b c@(x, y) = (x, y, getCardAt b c)
+
+getSurroundingCellsWithDirection :: Board -> Coord -> [(MaybeCell, Direction)]
+getSurroundingCellsWithDirection b cs = zip (getSurroundingCells b cs) (enumFrom North)
+
+getSurroundingCardsWithDirection :: Board -> Coord -> [(PathCard, Direction)]
+getSurroundingCardsWithDirection b cs = [(x, d) | ((_, _, Just x), d) <- getSurroundingCellsWithDirection b cs]
+
+getSurroundingCards :: Board -> Coord -> [PathCard]
+getSurroundingCards b cs = [x | ((_, _, Just x), _) <- getSurroundingCellsWithDirection b cs]
+
+getSurroundingEmptyPlaces :: Board -> Coord -> [Coord]
+getSurroundingEmptyPlaces b cs = [(x, y) | (x, y, Nothing) <- getSurroundingCells b cs]
+
+getEmptyCellsFromStart :: Board -> [Coord]
+getEmptyCellsFromStart b = nub $ getEmptyPlaces' (b, []) startCardCell
+  where
+    getEmptyPlaces' :: (Board, Board) -> Cell -> [Coord]
+    getEmptyPlaces' (board, visited) cell@(x, y, card) =
+      let connections  = [(x', y', p) | (x', y', Just p) <- getSurroundingCells board (x, y), (x', y', p) `notElem` visited]
+          emptyPlaces' = getSurroundingEmptyPlaces board (x, y)
+      in emptyPlaces' ++ concatMap (getEmptyPlaces' (board, cell:visited)) connections
+
+getUnflippedGoalCells :: Board -> [Cell]
+getUnflippedGoalCells b = filter (not . isPathCompletedTo b) $ filter isCellGoalCard b
+  where
+    isCellGoalCard :: Cell -> Bool
+    isCellGoalCard (_, _, c) = isGoalCard c

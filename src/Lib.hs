@@ -2,12 +2,14 @@ module Lib where
 
 import Text.Printf(printf)
 import System.Random(StdGen)
+import Data.Either
 import Game
 import Turn
 import Card
 import Board
 import Mocks
 import Utils
+import PrettyPrint
 
 newGame :: [String] -> StdGen -> Either String Game
 newGame ps gen
@@ -24,4 +26,10 @@ play g p a | canPlayAction = performAction g a
            | otherwise     = Left "Invalid action"
   where
     canPlayAction :: Bool
-    canPlayAction = either (const False) (a `elem`) (getActions p g)
+    canPlayAction = either (const False) (a `elem`) (getActions g)
+
+getActionsForPlayer :: String -> Game -> Either String [PlayerAction]
+getActionsForPlayer p g
+  | not (isPlayer p g)       = Left $ "Player " ++ p ++ " is not a player"
+  | not (isPlayerOnTurn p g) = Right []
+  | otherwise                = getActions g
