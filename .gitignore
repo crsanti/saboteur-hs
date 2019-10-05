@@ -1,3 +1,2 @@
-.stack-work/
-.editorconfig
-.dist-newstyle/
+/dist-newstyle
+/.ghc.*

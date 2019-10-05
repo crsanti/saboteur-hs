@@ -18,15 +18,15 @@ RUN apt-get -y install git procps lsb-release curl wget screen build-essential \
   libicu-dev libtinfo-dev libgmp-dev
 
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
-RUN stack upgrade
+RUN cabal v2-update
 
 RUN git clone https://github.com/digital-asset/ghcide.git
 RUN git clone https://github.com/alanz/haskell-lsp.git
 
 WORKDIR /ghcide
-RUN stack install
+RUN cabal install
 
 WORKDIR /haskell-lsp
 RUN stack install
 
-RUN stack install hlint
+RUN cabal v2-install hlint
