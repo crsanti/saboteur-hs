@@ -46,7 +46,7 @@ getActionCardActions ps b Player{ hand = Deck _ cs } = concatMap getActionsForCa
     getActionsForCard c@(BrokenToolCard t)          = [PlayActionCard c (name p) | p <- ps, canBreakTool t p]
     getActionsForCard c@(RepairToolCard t)          = [PlayActionCard c (name p) | p <- ps, canRepairTool t p]
     getActionsForCard c@(RepairDoubleToolCard t t') = [PlayActionCard c (name p) | p <- ps, canRepairTool t p || canRepairTool t' p]
-    getActionsForCard RockFallCard                  = [PlayRockFall (x, y) | (x, y, p) <- b, p `notElem` startCard : goalCards]
+    getActionsForCard RockFallCard                  = [PlayRockFall (x, y) | (x, y, p) <- b, p `notElem` unbreakableCards]
     getActionsForCard MapCard                       = map (PlayMapCard . tripleToPair) $ getUnflippedGoalCells b
 
 canBreakTool :: Tool -> Player -> Bool

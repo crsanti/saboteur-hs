@@ -1,6 +1,5 @@
 module Lib where
 
-import Text.Printf(printf)
 import System.Random(StdGen)
 import Data.Either
 import Game
@@ -21,15 +20,6 @@ newGame ps gen
     playersLength :: Int
     playersLength = length ps
 
-play :: Game -> String -> PlayerAction -> Either String Game
-play g p a | canPlayAction = performAction g a
-           | otherwise     = Left "Invalid action"
-  where
-    canPlayAction :: Bool
-    canPlayAction = either (const False) (a `elem`) (getActions g)
-
-getActionsForPlayer :: String -> Game -> Either String [PlayerAction]
-getActionsForPlayer p g
-  | not (isPlayer p g)       = Left $ "Player " ++ p ++ " is not a player"
-  | not (isPlayerOnTurn p g) = Right []
-  | otherwise                = getActions g
+play :: PlayerAction -> Game -> Either String Game
+play a g | a `elem` getActions g = performAction a g
+         | otherwise             = Left "Invalid action"

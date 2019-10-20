@@ -93,6 +93,9 @@ data Deck = Deck [PathCard] [ActionCard]
 goalCards :: [PathCard]
 goalCards = [goldCard, stoneCard, stoneCard]
 
+unbreakableCards :: [PathCard]
+unbreakableCards = startCard : goalCards
+
 flipPathCard :: PathCard -> PathCard
 flipPathCard PathCard{ pathCardType = p, north = n, east = e, south = s, west = w, rotated = r } =
   PathCard{ pathCardType = p, north = s, east = w, south = n, west = e, rotated = not r }
